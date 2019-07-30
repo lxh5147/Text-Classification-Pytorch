@@ -18,7 +18,6 @@ class RNN(nn.Module):
 		weights : Pre-trained GloVe word_embeddings which we will use to create our word_embedding look-up table 
 		
 		"""
-
 		self.batch_size = batch_size
 		self.output_size = output_size
 		self.hidden_size = hidden_size
