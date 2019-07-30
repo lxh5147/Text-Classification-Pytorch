@@ -1,12 +1,13 @@
+import argparse
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 import load_data
 from models.LSTM import LSTMClassifier
 
-TEXT, vocab_size, word_embeddings, train_iter, valid_iter, test_iter = load_data.load_dataset()
+loss_fn = F.cross_entropy
 
 
 def clip_gradient(model, clip_value):
@@ -76,43 +77,53 @@ def eval_model(model, val_iter):
     return total_epoch_loss / len(val_iter), total_epoch_acc / len(val_iter)
 
 
-learning_rate = 2e-5
-batch_size = 32
-output_size = 2
-hidden_size = 256
-embedding_length = 300
+def main(train_data_path: str, model_path: str):
+    TEXT, vocab_size, word_embeddings, train_iter, valid_iter, test_iter = load_data.load_dataset(train_data_path)
 
-model = LSTMClassifier(batch_size, output_size, hidden_size, vocab_size, embedding_length, word_embeddings)
-loss_fn = F.cross_entropy
+    batch_size = 32
+    output_size = 2
+    hidden_size = 256
+    embedding_length = 300
 
-for epoch in range(10):
-    train_loss, train_acc = train_model(model, train_iter, epoch)
-    val_loss, val_acc = eval_model(model, valid_iter)
+    # TODO: try other types of learning algorithms
+    model = LSTMClassifier(batch_size, output_size, hidden_size, vocab_size, embedding_length, word_embeddings)
 
-    print(
-        f'Epoch: {epoch + 1:02}, Train Loss: {train_loss:.3f}, Train Acc: {train_acc:.2f}%, Val. Loss: {val_loss:3f}, Val. Acc: {val_acc:.2f}%')
+    for epoch in range(10):
+        train_loss, train_acc = train_model(model, train_iter, epoch)
+        val_loss, val_acc = eval_model(model, valid_iter)
 
-test_loss, test_acc = eval_model(model, test_iter)
-print(f'Test Loss: {test_loss:.3f}, Test Acc: {test_acc:.2f}%')
+        print(
+            f'Epoch: {epoch + 1:02}, Train Loss: {train_loss:.3f}, Train Acc: {train_acc:.2f}%, Val. Loss: {val_loss:3f}, Val. Acc: {val_acc:.2f}%')
 
-''' Let us now predict the sentiment on a single sentence just for the testing purpose. '''
-test_sen1 = "This is one of the best creation of Nolan. I can say, it's his magnum opus. Loved the soundtrack and especially those creative dialogues."
-test_sen2 = "Ohh, such a ridiculous movie. Not gonna recommend it to anyone. Complete waste of time and money."
+    test_loss, test_acc = eval_model(model, test_iter)
+    print(f'Test Loss: {test_loss:.3f}, Test Acc: {test_acc:.2f}%')
 
-test_sen1 = TEXT.preprocess(test_sen1)
-test_sen1 = [[TEXT.vocab.stoi[x] for x in test_sen1]]
+    ''' Let us now predict the sentiment on a single sentence just for the testing purpose. '''
+    test_sen1 = "This is one of the best creation of Nolan. I can say, it's his magnum opus. Loved the soundtrack and especially those creative dialogues."
 
-test_sen2 = TEXT.preprocess(test_sen2)
-test_sen2 = [[TEXT.vocab.stoi[x] for x in test_sen2]]
+    test_sen1 = TEXT.preprocess(test_sen1)
+    test_sen1 = [[TEXT.vocab.stoi[x] for x in test_sen1]]
 
-test_sen = np.asarray(test_sen1)
-test_sen = torch.LongTensor(test_sen)
-test_tensor = Variable(test_sen, volatile=True)
-test_tensor = test_tensor.cuda()
-model.eval()
-output = model(test_tensor, 1)
-out = F.softmax(output, 1)
-if (torch.argmax(out[0]) == 1):
-    print("Sentiment: Positive")
-else:
-    print("Sentiment: Negative")
+    test_sen = np.asarray(test_sen1)
+    test_sen = torch.from_numpy(test_sen)
+    if torch.cuda.is_available():
+        test_sen = test_sen.cuda()
+    model.eval()
+    output = model(test_sen, 1)
+    out = F.softmax(output, 1)
+    if (torch.argmax(out[0]) == 1):
+        print("Sentiment: Positive")
+    else:
+        print("Sentiment: Negative")
+
+    # save the model
+    torch.save(model.state_dict(), model_path)
+
+
+if __name__ == '__main__':
+    # example usage: main.py --model_path sentiment.pkl --train_data_path kol_blogs.csv
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--train_data_path', required=True)
+    parser.add_argument('--model_path', required=True)
+    args = parser.parse_args()
+    main(train_data_path=args.train_data_path, model_path=args.model_path)
