@@ -18,7 +18,8 @@ def clip_gradient(model, clip_value):
 def train_model(model, train_iter, epoch):
     total_epoch_loss = 0
     total_epoch_acc = 0
-    model.cuda()
+    if torch.cuda.is_available():
+        model.cuda()
     optim = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()))
     steps = 0
     model.train()
