@@ -10,6 +10,7 @@ from sklearn.cluster import KMeans
 
 # step 1: download a model: python -m spacy download en_core_web_lg
 
+# TODO: re-train a word embedding vectors on blogs
 # step 2: load the model with a nlp pipeline properly configured, refer to: https://spacy.io/usage/processing-pipelines
 
 nlp = spacy.load("en_core_web_lg", disable=["tagger", "parser"])
