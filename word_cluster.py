@@ -57,7 +57,8 @@ def build_word_vector_matrix(tokens):
 
 df, labels_array = build_word_vector_matrix(tokens)
 
-#TODO: make it more efficient
+
+# TODO: make it more efficient
 def build_word_clusters(df, n_clusters=10):
     kmeans_model = KMeans(n_clusters=n_clusters)
     kmeans_model.fit(df)
@@ -74,7 +75,7 @@ def find_word_clusters(labels_array, cluster_labels):
         if c in cluster_to_words:
             cluster_to_words[c].append(labels_array[i])
         else:
-            cluster_to_words [c] = [labels_array[i]]
+            cluster_to_words[c] = [labels_array[i]]
     return cluster_to_words
 
 
